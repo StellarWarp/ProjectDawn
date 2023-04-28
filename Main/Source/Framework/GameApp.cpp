@@ -1,7 +1,6 @@
 #include "GameApp.h"
 #include "Utility/Utility.h"
-#include "Rendering/Light.h"
-#include "Rendering/ShaderProperty/LitShader.h"
+#include "Rendering/ShaderProperty/CustomPassProperty.h"
 bool GameApp::Init() {
 	if (!OpenGLApp::Init()) return false;
 	if (!InitObject()) return false;
@@ -18,8 +17,11 @@ bool GameApp::InitObject()
 	m_Camera->transform.position = { -1, 0.5, 1 };
 	m_Camera->transform.LookAt({ 0,0,0 });
 
-
-	Light* light = new Light();
+	m_Light = new LightObject();
+	m_Light->SetParent(&m_WorldRoot);
+	m_Light->transform.position = { 0, 0, 0 };
+	m_Light->light.SetMainLight();
+	m_Light->light.SetDirection({ 1,1,1 });
 
 	return true;
 }
@@ -28,9 +30,9 @@ bool GameApp::InitObject()
 bool GameApp::LoadResources() {
 	//passes
 	auto pass = std::make_shared<RenderPass>();
-	pass->Create<LitPassData>(L"Lit");
+	pass->Create<LitPassProperty>(L"Lit");
 	auto shadowPass = std::make_shared<RenderPass>();
-	shadowPass->Create<ShadowPassData>(L"Caster");
+	shadowPass->Create<ShadowPassProperty>(L"Caster");
 	shadowPass->NormalEnable = false;
 
 
@@ -80,6 +82,9 @@ void GameApp::UpdateLogic(float dt) {
 	//	std::cout << std::format("x {:.2f} y {:.2f} z {:.2f}\n", pos.x, pos.y, pos.z);
 	//	std::cout << std::format("rx {:.2f} ry {:.2f} rz {:.2f}\n", rot.x, rot.y, rot.z);
 	//}
+	//make light follow camera
+	auto& lightPos = Light::mainLight->transform.position;
+	lightPos = m_Camera->transform.position + Light::mainLight->GetDirection()*1.0f;
 
 	//rotate light
 	if (Input::GetKey(KeyCode::X))

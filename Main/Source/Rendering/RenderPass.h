@@ -2,6 +2,7 @@
 
 #include "Libraries/OpenGL.h"
 #include "Libraries/Libs.h"
+class Renderer;
 
 
 #if defined(_DEBUG) || defined(DEBUG)
@@ -62,29 +63,76 @@ class RenderPass {
 
 	};
 public:
+	
 	class IRenderPassProperty {
 	public:
 
 		template<class T>
+			requires std::is_same_v<T, bool> ||
+			std::is_same_v<T, int> ||
+			std::is_same_v<T, float> ||
+			std::is_same_v<T, glm::vec2> ||
+			std::is_same_v<T, glm::vec3> ||
+			std::is_same_v<T, glm::vec4> ||
+			std::is_same_v<T, glm::mat2> ||
+			std::is_same_v<T, glm::mat3> ||
+			std::is_same_v<T, glm::mat4>
 		class ShaderProperty {
+
 		public:
 			uint32_t location;
 			ShaderProperty(const std::string& name, const RenderPass* pass) {
-				location = pass->GetLocation(name);
+				location = glGetUniformLocation(pass->progma_id, name.c_str());;
 			}
 
-			void Set(const T& data) {
-				RenderPass::SetUniform(location, data);
+			void Set(const T& value) {
+				//SetUniform(location, data);
+				if constexpr (std::is_same_v<T, bool>) {
+					glUniform1i(location, (int)value);
+				}
+				else if constexpr (std::is_same_v<T, int>) {
+					glUniform1i(location, value);
+				}
+				else if constexpr (std::is_same_v<T, float>) {
+					glUniform1f(location, value);
+				}
+				else if constexpr (std::is_same_v<T, glm::vec2>) {
+					glUniform2fv(location, 1, &value[0]);
+				}
+				else if constexpr (std::is_same_v<T, glm::vec3>) {
+					glUniform3fv(location, 1, &value[0]);
+				}
+				else if constexpr (std::is_same_v<T, glm::vec4>) {
+					glUniform4fv(location, 1, &value[0]);
+				}
+				else if constexpr (std::is_same_v<T, glm::mat2>) {
+					glUniformMatrix2fv(location, 1, GL_FALSE, &value[0][0]);
+				}
+				else if constexpr (std::is_same_v<T, glm::mat3>) {
+					glUniformMatrix3fv(location, 1, GL_FALSE, &value[0][0]);
+				}
+				else if constexpr (std::is_same_v<T, glm::mat4>) {
+					glUniformMatrix4fv(location, 1, GL_FALSE, &value[0][0]);
+				}
+				else {
+					throw std::exception("SetUniform: Type not supported");
+				}
 			}
 		};
+
+		template<class T>
+		class ShaderConstantBuffer {
+		public:
+			//to do: finish api for constant buffer
+		};
+		
 	public:
 
-		RenderPass* pass{};
-
 		IRenderPassProperty(RenderPass* pass) :pass(pass) {}
-
+		virtual void SetData(Renderer* renderer) {};
+		virtual void ClearUp(Renderer* renderer) {};
 	protected:
-		virtual void _() {}
+		RenderPass* pass{};
 
 	};
 
@@ -140,102 +188,23 @@ public:
 
 	void Load(const wchar_t* vertexPath, const wchar_t* fragmentPath);
 
-	void Use();
-
 	void RuntimeUpdateCheck();
-	template<class T> requires std::derived_from<T, IRenderPassProperty>
-	T& Properties()
+	void Active(Renderer* renderer,auto OnDrawCall)
 	{
-		//bool is_null = properties->pass == nullptr;
-		//std::cout << std::format("pass ptr{}\n", is_null);
-		return *dynamic_cast<T*>(properties.get());
+		RuntimeUpdateCheck();
+		glUseProgram(progma_id);
+		properties->SetData(renderer);
+		OnDrawCall();
+		properties->ClearUp(renderer);
+	}
+	void Active(auto OnDrawCall)
+	{
+		RuntimeUpdateCheck();
+		glUseProgram(progma_id);
+		OnDrawCall();
 	}
 private:
-	// utility uniform functions
-	static inline void SetBool(uint32_t location, bool value) {
-		glUniform1i(location, (int)value);
-	}
-	static inline void SetInt(uint32_t location, int value) {
-		glUniform1i(location, value);
-	}
-	static inline void SetFloat(uint32_t location, float value) {
-		glUniform1f(location, value);
-	}
-	static inline void SetVec2(uint32_t location, const glm::vec2& value) {
-		glUniform2fv(location, 1, &value[0]);
-	}
-	static inline void SetVec2(uint32_t location, float x, float y) {
-		glUniform2f(location, x, y);
-	}
-	static inline void SetVec3(uint32_t location, const glm::vec3& value) {
-		glUniform3fv(location, 1, &value[0]);
-	}
-	static inline void SetVec3(uint32_t location, float x, float y, float z) {
-		glUniform3f(location, x, y, z);
-	}
-	static inline void SetVec4(uint32_t location, const glm::vec4& value) {
-		glUniform4fv(location, 1, &value[0]);
-	}
-	static inline void SetVec4(uint32_t location, float x, float y, float z, float w) {
-		glUniform4f(location, x, y, z, w);
-	}
-	static inline void SetMat2(uint32_t location, const glm::mat2& mat) {
-		glUniformMatrix2fv(location, 1, GL_FALSE, &mat[0][0]);
-	}
-	static inline void SetMat3(uint32_t location, const glm::mat3& mat) {
-		glUniformMatrix3fv(location, 1, GL_FALSE, &mat[0][0]);
-	}
-	static inline void SetMat4(uint32_t location, const glm::mat4& mat) {
-		glUniformMatrix4fv(location, 1, GL_FALSE, &mat[0][0]);
-	}
-public:
-	template<class T>
-	static void SetUniform(uint32_t location, const T& value)
-		requires std::is_same_v<T, bool> ||
-		std::is_same_v<T, int> ||
-		std::is_same_v<T, float> ||
-		std::is_same_v<T, glm::vec2> ||
-		std::is_same_v<T, glm::vec3> ||
-		std::is_same_v<T, glm::vec4> ||
-		std::is_same_v<T, glm::mat2> ||
-		std::is_same_v<T, glm::mat3> ||
-		std::is_same_v<T, glm::mat4>
-	{
-		if constexpr (std::is_same_v<T, bool>) {
-			SetBool(location, value);
-		}
-		else if constexpr (std::is_same_v<T, int>) {
-			SetInt(location, value);
-		}
-		else if constexpr (std::is_same_v<T, float>) {
-			SetFloat(location, value);
-		}
-		else if constexpr (std::is_same_v<T, glm::vec2>) {
-			SetVec2(location, value);
-		}
-		else if constexpr (std::is_same_v<T, glm::vec3>) {
-			SetVec3(location, value);
-		}
-		else if constexpr (std::is_same_v<T, glm::vec4>) {
-			SetVec4(location, value);
-		}
-		else if constexpr (std::is_same_v<T, glm::mat2>) {
-			SetMat2(location, value);
-		}
-		else if constexpr (std::is_same_v<T, glm::mat3>) {
-			SetMat3(location, value);
-		}
-		else if constexpr (std::is_same_v<T, glm::mat4>) {
-			SetMat4(location, value);
-		}
-		else {
-			throw std::exception("SetUniform: Type not supported");
-		}
-	}
 
-	inline uint32_t GetLocation(const std::string& name) const {
-		return glGetUniformLocation(progma_id, name.c_str());
-	}
 
 private:
 

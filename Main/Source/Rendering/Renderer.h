@@ -128,8 +128,6 @@ public:
 		RenderEnqueue(this);
 	}
 
-	//static void SetMatrixCamera(glm::mat4 V, glm::mat4 P);
-
 	void ForwardRender();
 
 	void ShadowRender();

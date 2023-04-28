@@ -4,8 +4,9 @@
 
 class Light {
 
-	glm::vec3 dir;
+	
 public:
+	Transform& transform;
 	inline static Light* mainLight;
 public:
 
@@ -17,7 +18,7 @@ public:
 	uint32_t shadowWidth;
 	uint32_t shadowHeight;
 
-	Light();
+	Light(Transform& transform);
 	void SetMainLight();
 	void SetDirection(glm::vec3 dir);
 	glm::vec3 GetDirection();

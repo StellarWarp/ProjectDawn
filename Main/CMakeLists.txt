@@ -10,7 +10,7 @@ file(GLOB_RECURSE SRC_FILES "*.cpp" "*.c" "*.ixx")
 #set(VS_JUST_MY_CODE_DEBUGGING ON)
 #add_compile_options( /Zc:__cplusplus /ZI )
 add_compile_options( /JMC )
-add_executable (Main ${SRC_FILES} ${HEADER_FILE} "Source/Framework/Input.cpp")
+add_executable (Main ${SRC_FILES} ${HEADER_FILE})
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/Source")
 

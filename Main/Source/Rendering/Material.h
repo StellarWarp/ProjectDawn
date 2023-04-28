@@ -8,8 +8,6 @@ enum class LightMode {
 };
 
 
-
-
 class Material {
 
 	RenderPass* activePass;
@@ -31,22 +29,17 @@ public:
 		}
 	}
 
+
 	template<LightMode mode>
-	std::shared_ptr<RenderPass> ActivePass();
-
-	template<>
-	std::shared_ptr<RenderPass> ActivePass<LightMode::FORWARD>()
+	void ActivePass(Renderer* renderer,auto OnDrawCall)
 	{
-		ActivePass(forwardPass);
-		return forwardPass;
+		if constexpr (mode == LightMode::FORWARD)forwardPass->Active(renderer, OnDrawCall);
+		else if constexpr (mode == LightMode::SHADOW)shadowCast->Active(renderer, OnDrawCall);
+		else {
+			throw std::exception("ActivePass: Type not supported");
+		}
 	}
 
-	template<>
-	std::shared_ptr<RenderPass> ActivePass<LightMode::SHADOW>()
-	{
-		ActivePass(shadowCast);
-		return shadowCast;
-	}
 
 	RenderLayer GetRenderLayer();
 

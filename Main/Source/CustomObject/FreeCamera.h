@@ -10,7 +10,7 @@ public:
 
 	void Update(float dt) override {
 		Camera::Update(dt);
-		movementController.Update(dt);
+		movementController.Update(dt);	
 		rigidBody.Update(dt);
 
 	}

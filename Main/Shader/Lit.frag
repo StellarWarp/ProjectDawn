@@ -28,9 +28,10 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     // 取得当前片段在光源视角下的深度
     float currentDepth = projCoords.z;
 
-	vec3 normal = normalize(i.normal_world);
-    vec3 lightDir = light_dir;
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.00005);
+//	  vec3 normal = normalize(i.normal_world);
+//    vec3 lightDir = light_dir;
+//    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.00005);
+	float bias =0;
 
 	float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);

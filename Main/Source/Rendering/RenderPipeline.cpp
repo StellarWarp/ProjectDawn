@@ -98,10 +98,8 @@ void RenderPipeline::RenderShadow()
 	glCullFace(GL_BACK);
 
 
-	debugPass->Use();
-	debugPass->RuntimeUpdateCheck();
+	debugPass->Active(renderQuad);
 	
-	renderQuad();
 }
 
 void RenderPipeline::RenderBackground()

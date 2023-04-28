@@ -98,11 +98,6 @@ void RenderPass::Load(const wchar_t* vertexPath, const wchar_t* fragmentPath) {
 	checkCompileErrors(progma_id, L"PROGRAM");
 }
 
-void RenderPass::Use() {
-	glUseProgram(progma_id);
-	//RS.Stepup();
-}
-
 void RenderPass::RuntimeUpdateCheck() {
 	if (VertexShader.UpdateCheck()) {
 		glAttachShader(progma_id, VertexShader);

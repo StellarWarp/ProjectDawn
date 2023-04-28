@@ -57,11 +57,6 @@ public:
 	glm::vec3& Position() { return transform.position; }
 };
 
-//class Controller {
-//	std::function<void(glm::vec3)> onMove;
-//public:
-//};
-
 
 class MovementController {
 	RigidBody& rigidbody;
