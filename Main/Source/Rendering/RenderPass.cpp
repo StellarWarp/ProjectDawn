@@ -8,6 +8,7 @@ bool RenderPass::Shader::UpdateCheck() {
 	struct _stat64 result;
 	_wstat64(shaderPath.c_str(), &result);
 	if (result.st_mtime != lastCompiledModification) {
+		std::wcout << "Recompiling shader " << this->shaderPath << std::endl;
 		Compile();
 		return true;
 	}
@@ -61,7 +62,9 @@ RenderLayer RenderPass::GetRenderLayer() const {
 	return RenderLayer::Overlay;
 }
 
-void RenderPass::Create(std::wstring_view shaderName)
+
+
+void RenderPass::CreateShaders(std::wstring_view shaderName)
 {
 	namespace fs = std::filesystem;
 	auto srcPath = Utility::ProjectPath();
@@ -88,45 +91,33 @@ void RenderPass::Load(const wchar_t* vertexPath, const wchar_t* fragmentPath) {
 	VertexShader.Load(vertexPath);
 	FragmentShader.Load(fragmentPath);
 	// shader Program
-	ID = glCreateProgram();
-	glAttachShader(ID, VertexShader);
-	glAttachShader(ID, FragmentShader);
-	glLinkProgram(ID);
-	checkCompileErrors(ID, L"PROGRAM");
-
-	location_MVP[0] = GetLocation("MATRIX_M");
-	location_MVP[1] = GetLocation("MATRIX_PV");
-	location_N = GetLocation("MATRIX_N");
+	progma_id = glCreateProgram();
+	glAttachShader(progma_id, VertexShader);
+	glAttachShader(progma_id, FragmentShader);
+	glLinkProgram(progma_id);
+	checkCompileErrors(progma_id, L"PROGRAM");
 }
 
 void RenderPass::Use() {
-	glUseProgram(ID);
+	glUseProgram(progma_id);
 	//RS.Stepup();
 }
 
 void RenderPass::RuntimeUpdateCheck() {
 	if (VertexShader.UpdateCheck()) {
-		glAttachShader(ID, VertexShader);
-		glLinkProgram(ID);
-		checkCompileErrors(ID, L"PROGRAM");
+		glAttachShader(progma_id, VertexShader);
+		glLinkProgram(progma_id);
+		checkCompileErrors(progma_id, L"PROGRAM");
 	}
 	if (FragmentShader.UpdateCheck()) {
-		glAttachShader(ID, FragmentShader);
-		glLinkProgram(ID);
-		checkCompileErrors(ID, L"PROGRAM");
+		glAttachShader(progma_id, FragmentShader);
+		glLinkProgram(progma_id);
+		checkCompileErrors(progma_id, L"PROGRAM");
 	}
 }
 
 // utility function for checking shader compilation/linking errors.
 // ------------------------------------------------------------------------
-
-void RenderPass::SetMatrixMVP(const glm::mat4& PV, const glm::mat4& M)
-{
-	SetMat4(location_MVP[0], M);
-	SetMat4(location_MVP[1], PV);
-	if (NormalEnable)
-		SetMat3(location_N, glm::transpose(glm::inverse(glm::mat3(M))));
-}
 
 void RenderPass::checkCompileErrors(unsigned int shader, std::wstring_view type) {
 	int success;

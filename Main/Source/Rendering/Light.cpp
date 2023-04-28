@@ -1,12 +1,12 @@
 #include "Light.h"
-
+#include "Camera.h"
 Light::Light() {
 	dir = glm::vec3(0.0f, -1.0f, -1.0f);
 	dir = glm::normalize(dir);
 
 	mainLight = this;
-	shadowWidth = 1024;
-	shadowHeight = 1024;
+	shadowWidth = 2048;
+	shadowHeight = 2048;
 
 	glGenFramebuffers(1, &depthMapFBO);
 
@@ -15,8 +15,8 @@ Light::Light() {
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
 		shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	GLfloat borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
@@ -34,7 +34,13 @@ void Light::SetMainLight() {
 }
 
 void Light::SetDirection(glm::vec3 dir) {
-	this->dir = dir;
+	
+	this->dir = glm::normalize(dir);
+}
+
+glm::vec3 Light::GetDirection()
+{
+	return dir;
 }
 
 void Light::SetShadowMapSize(uint32_t width, uint32_t height) {
@@ -44,12 +50,12 @@ void Light::SetShadowMapSize(uint32_t width, uint32_t height) {
 
 glm::mat4 Light::WorldToShadowTransform()
 {
-	glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
-	glm::mat4 lightView = glm::lookAt(-dir, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::vec3 eye = Camera::GetMainCamera()->transform.position + dir * 1.0f;
+	glm::mat4 lightProjection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.1f, 10.0f);
+	glm::mat4 lightView = glm::lookAt(eye, Camera::GetMainCamera()->transform.position, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 	return lightSpaceMatrix;
 }
-
 void Light::TargetBindShadow()
 {
 	glViewport(0, 0, shadowWidth, shadowHeight);

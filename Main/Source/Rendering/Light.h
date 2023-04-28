@@ -4,10 +4,10 @@
 
 class Light {
 
+	glm::vec3 dir;
 public:
 	inline static Light* mainLight;
 public:
-	glm::vec3 dir;
 
 	//shadow
 	//bool shadowEnable;
@@ -20,9 +20,11 @@ public:
 	Light();
 	void SetMainLight();
 	void SetDirection(glm::vec3 dir);
+	glm::vec3 GetDirection();
 	void SetShadowMapSize(uint32_t width, uint32_t height);
 
 	glm::mat4 WorldToShadowTransform();
+
 
 	void TargetBindShadow();
 

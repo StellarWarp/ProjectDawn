@@ -8,7 +8,7 @@ file(GLOB_RECURSE SRC_FILES "*.cpp" "*.c" "*.ixx")
 #aux_source_directory(. SRC_FILES)
 
 #set(VS_JUST_MY_CODE_DEBUGGING ON)
-add_compile_options( /Zc:__cplusplus /ZI )
+#add_compile_options( /Zc:__cplusplus /ZI )
 add_compile_options( /JMC )
 add_executable (Main ${SRC_FILES} ${HEADER_FILE} "Source/Framework/Input.cpp")
 

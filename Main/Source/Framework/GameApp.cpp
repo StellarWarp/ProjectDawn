@@ -1,6 +1,7 @@
 #include "GameApp.h"
 #include "Utility/Utility.h"
 #include "Rendering/Light.h"
+#include "Rendering/ShaderProperty/LitShader.h"
 bool GameApp::Init() {
 	if (!OpenGLApp::Init()) return false;
 	if (!InitObject()) return false;
@@ -27,9 +28,9 @@ bool GameApp::InitObject()
 bool GameApp::LoadResources() {
 	//passes
 	auto pass = std::make_shared<RenderPass>();
-	pass->Create(L"Lit");
+	pass->Create<LitPassData>(L"Lit");
 	auto shadowPass = std::make_shared<RenderPass>();
-	shadowPass->Create(L"Caster");
+	shadowPass->Create<ShadowPassData>(L"Caster");
 	shadowPass->NormalEnable = false;
 
 
@@ -37,6 +38,9 @@ bool GameApp::LoadResources() {
 	mat->SetPass<LightMode::FORWARD>(pass);
 	mat->SetPass<LightMode::SHADOW>(shadowPass);
 
+
+
+	//object
 	auto modelPathDir = Utility::ProjectPath();
 	modelPathDir.append("Model");
 
@@ -51,26 +55,48 @@ bool GameApp::LoadResources() {
 		return obj;
 	};
 
-	LoadAndSetParent(L"bunny")->transform.position = { 0,0,0 };
+	auto bunny = LoadAndSetParent(L"bunny");
+	bunny->transform.position = { 0,0,0 };
+	bunny->transform.scale = { 2,2,2 };
 	auto cube = LoadAndSetParent(L"cube");
 	auto cube1 = LoadAndSetParent(L"cube");
 	cube->transform.position = { 0,-0.5,0 };
-	cube->transform.scale = { 0.5,0.5,0.5 };
+	cube->transform.scale = { 2,0.5,2 };
 	cube->transform.rotation = glm::qua(glm::vec3(glm::pi<float>(), 0, 0));
 	cube1->transform.position = { 0,-0.5,3 };
 	cube1->transform.scale = { 0.5,0.5,0.5 };
+
+	Light::mainLight->SetDirection(glm::normalize(glm::vec3{ 1, 1, 1 }));
 	return true;
 }
 
 void GameApp::UpdateLogic(float dt) {
 	EngineUpdate(&m_WorldRoot, dt);
 
-	if (Input::GetKeyDown(KeyCode::F))
+	//if (Input::GetKeyDown(KeyCode::F))
+	//{
+	//	auto& pos = Camera::GetMainCamera()->transform.position;
+	//	auto rot = glm::eulerAngles(Camera::GetMainCamera()->transform.rotation);
+	//	std::cout << std::format("x {:.2f} y {:.2f} z {:.2f}\n", pos.x, pos.y, pos.z);
+	//	std::cout << std::format("rx {:.2f} ry {:.2f} rz {:.2f}\n", rot.x, rot.y, rot.z);
+	//}
+
+	//rotate light
+	if (Input::GetKey(KeyCode::X))
 	{
-		auto& pos = Camera::GetMainCamera()->transform.position;
-		auto rot = glm::eulerAngles(Camera::GetMainCamera()->transform.rotation);
-		std::cout << std::format("x {:.2f} y {:.2f} z {:.2f}\n", pos.x, pos.y, pos.z);
-		std::cout << std::format("rx {:.2f} ry {:.2f} rz {:.2f}\n", rot.x, rot.y, rot.z);
+		auto& light = Light::mainLight;
+		auto delta = Input::GetMouseDelta();
+		Input::SetMouseHide();
+
+		delta *= 10 * dt;
+		using namespace glm;
+		auto dir = light->GetDirection();
+		//rotate dir around y axis with delta.x
+		dir = rotate(mat4(1), delta.x, vec3(0, 1, 0)) * vec4(dir, 0);
+		//rotate dir up and down with delta.y
+		auto right = cross(dir, vec3(0, 1, 0));
+		dir = rotate(mat4(1), delta.y, right) * vec4(dir, 0);
+		light->SetDirection(dir);
 	}
 }
 

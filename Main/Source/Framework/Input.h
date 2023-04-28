@@ -156,6 +156,7 @@ class Input {
 
 	static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
+		if (key >= 1024 || key < 0) return;
 		if (action == GLFW_PRESS)
 		{
 			m_Keys[key] = true;
@@ -168,7 +169,7 @@ class Input {
 		}
 	}
 public:
-	static void Init(GLFWwindow* win) { 
+	static void Init(GLFWwindow* win) {
 		m_Window = win;
 		glfwSetKeyCallback(m_Window, KeyCallback);
 	}

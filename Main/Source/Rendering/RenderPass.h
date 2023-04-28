@@ -61,16 +61,42 @@ class RenderPass {
 		void Compile();
 
 	};
+public:
+	class IRenderPassProperty {
+	public:
+
+		template<class T>
+		class ShaderProperty {
+		public:
+			uint32_t location;
+			ShaderProperty(const std::string& name, const RenderPass* pass) {
+				location = pass->GetLocation(name);
+			}
+
+			void Set(const T& data) {
+				RenderPass::SetUniform(location, data);
+			}
+		};
+	public:
+
+		RenderPass* pass{};
+
+		IRenderPassProperty(RenderPass* pass) :pass(pass) {}
+
+	protected:
+		virtual void _() {}
+
+	};
 
 private:
 
-	uint32_t ID;
+	uint32_t progma_id;
 
-	uint32_t location_MVP[2];
-	uint32_t location_N;
+	std::unique_ptr<IRenderPassProperty> properties;
 public:
 	Shader VertexShader{ ShaderType::Vertex };
 	Shader FragmentShader{ ShaderType::Fragment };
+
 	uint32_t RenderQueue = 2000;
 	bool NormalEnable = true;
 	//光栅化状态
@@ -92,7 +118,7 @@ public:
 			SwitchMode(Cull, GL_CULL_FACE);
 			SwitchMode(Blend, GL_CULL_FACE);
 			SwitchMode(DepthWrite, GL_DEPTH_CLAMP);
-			
+
 			glCullFace(CullMode);
 			glBlendFunc(BlendSrc, BlendDst);
 			glDepthFunc(DepthFunc);
@@ -103,14 +129,28 @@ public:
 
 	RenderLayer GetRenderLayer() const;
 
-	void Create(std::wstring_view name);
+	template<class T> requires std::derived_from<T, IRenderPassProperty>
+	void Create(std::wstring_view name)
+	{
+		CreateShaders(name);
+		properties = std::make_unique<T>(this);
+	}
+
+	void CreateShaders(std::wstring_view shaderName);
 
 	void Load(const wchar_t* vertexPath, const wchar_t* fragmentPath);
 
 	void Use();
 
 	void RuntimeUpdateCheck();
-
+	template<class T> requires std::derived_from<T, IRenderPassProperty>
+	T& Properties()
+	{
+		//bool is_null = properties->pass == nullptr;
+		//std::cout << std::format("pass ptr{}\n", is_null);
+		return *dynamic_cast<T*>(properties.get());
+	}
+private:
 	// utility uniform functions
 	static inline void SetBool(uint32_t location, bool value) {
 		glUniform1i(location, (int)value);
@@ -148,11 +188,54 @@ public:
 	static inline void SetMat4(uint32_t location, const glm::mat4& mat) {
 		glUniformMatrix4fv(location, 1, GL_FALSE, &mat[0][0]);
 	}
+public:
+	template<class T>
+	static void SetUniform(uint32_t location, const T& value)
+		requires std::is_same_v<T, bool> ||
+		std::is_same_v<T, int> ||
+		std::is_same_v<T, float> ||
+		std::is_same_v<T, glm::vec2> ||
+		std::is_same_v<T, glm::vec3> ||
+		std::is_same_v<T, glm::vec4> ||
+		std::is_same_v<T, glm::mat2> ||
+		std::is_same_v<T, glm::mat3> ||
+		std::is_same_v<T, glm::mat4>
+	{
+		if constexpr (std::is_same_v<T, bool>) {
+			SetBool(location, value);
+		}
+		else if constexpr (std::is_same_v<T, int>) {
+			SetInt(location, value);
+		}
+		else if constexpr (std::is_same_v<T, float>) {
+			SetFloat(location, value);
+		}
+		else if constexpr (std::is_same_v<T, glm::vec2>) {
+			SetVec2(location, value);
+		}
+		else if constexpr (std::is_same_v<T, glm::vec3>) {
+			SetVec3(location, value);
+		}
+		else if constexpr (std::is_same_v<T, glm::vec4>) {
+			SetVec4(location, value);
+		}
+		else if constexpr (std::is_same_v<T, glm::mat2>) {
+			SetMat2(location, value);
+		}
+		else if constexpr (std::is_same_v<T, glm::mat3>) {
+			SetMat3(location, value);
+		}
+		else if constexpr (std::is_same_v<T, glm::mat4>) {
+			SetMat4(location, value);
+		}
+		else {
+			throw std::exception("SetUniform: Type not supported");
+		}
+	}
 
 	inline uint32_t GetLocation(const std::string& name) const {
-		return glGetUniformLocation(ID, name.c_str());
+		return glGetUniformLocation(progma_id, name.c_str());
 	}
-	void SetMatrixMVP(const glm::mat4& PV, const glm::mat4& M);
 
 private:
 
@@ -162,3 +245,5 @@ private:
 	// ------------------------------------------------------------------------
 	static void checkCompileErrors(unsigned int shader, std::wstring_view type);
 };
+
+using IRenderPassProperty = RenderPass::IRenderPassProperty;

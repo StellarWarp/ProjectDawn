@@ -1,7 +1,50 @@
 #include "RenderPipeline.h"
 #include "Light.h"
 
-RenderPass debugPass;
+RenderPass* debugPass;
+
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
+void QuadInit()
+{
+	if (quadVAO == 0)
+	{
+		float quadVertices[] = {
+			// positions        // texture Coords
+			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+			 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+			 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+		};
+		//set quadVertices to left up corner
+		for (int i = 0; i < 4; i++)
+		{
+			auto &x = quadVertices[i * 5 + 0];
+			auto &y = quadVertices[i * 5 + 1];
+			x = x/2 + 0.5f;
+			y = y/2 + 0.5f;
+		}
+
+		// setup plane VAO
+		glGenVertexArrays(1, &quadVAO);
+		glGenBuffers(1, &quadVBO);
+		glBindVertexArray(quadVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	}
+}
+
+void renderQuad()
+{
+	glBindVertexArray(quadVAO);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+
 
 RenderPipeline::RenderPipeline() {
 	if (instance) throw std::exception("RenderPipeline is a singleton");
@@ -14,38 +57,11 @@ RenderPipeline::RenderPipeline() {
 	transparentQueue.reserve(1000);
 	overlayQueue.reserve(1000);
 
-	debugPass.Create(L"DebugQuad");
+	debugPass = new RenderPass();
+	debugPass->Create<IRenderPassProperty>(L"DebugQuad");
+	QuadInit();
 }
 
-//debug
-unsigned int quadVAO = 0;
-unsigned int quadVBO;
-void renderQuad()
-{
-	if (quadVAO == 0)
-	{
-		float quadVertices[] = {
-			// positions        // texture Coords
-			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-			 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-			 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-		};
-		// setup plane VAO
-		glGenVertexArrays(1, &quadVAO);
-		glGenBuffers(1, &quadVBO);
-		glBindVertexArray(quadVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	}
-	glBindVertexArray(quadVAO);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glBindVertexArray(0);
-}
 
 void RenderPipeline::Render()
 {
@@ -56,6 +72,7 @@ void RenderPipeline::Render()
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 
 	RenderBackground();
 	RenderShadow();
@@ -66,8 +83,10 @@ void RenderPipeline::Render()
 
 }
 
+
 void RenderPipeline::RenderShadow()
 {
+	glCullFace(GL_FRONT);
 	for (auto renderer : opaqueQueue)
 	{
 		renderer->ShadowRender();
@@ -76,7 +95,11 @@ void RenderPipeline::RenderShadow()
 	{
 		renderer->ShadowRender();
 	}
-	debugPass.Use();
+	glCullFace(GL_BACK);
+
+
+	debugPass->Use();
+	debugPass->RuntimeUpdateCheck();
 	
 	renderQuad();
 }
